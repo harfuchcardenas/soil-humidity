@@ -1,0 +1,34 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+# Step 1: Create the Python virtual environment
+# Check if Python 3 is installed
+my $python3_path = `which python3`;
+chomp($python3_path);
+
+if (!$python3_path) {
+    print "Python 3 is not installed. Do you want to install it? (y/n): ";
+    my $response = <STDIN>;
+    chomp($response);
+    
+    if ($response eq "y") {
+        print "Installing Python 3...\n";
+        system("sudo apt update && sudo apt install python3 -y");  # Change for other distros if needed
+    } else {
+        print "Python 3 installation skipped.\n";
+        exit(1);
+    }
+} else {
+    print "Python 3 is installed at: $python3_path\n";
+    # Continue with the script
+}
+exit 0;
+# Step 1: Create the Python virtual environment
+my $venv_name = "../.venv";
+my $status = system("python3 -m venv $venv_name");
+die "Failed to create virtual environment!\n" if $status != 0;
+
+# Step 2: Activate virtual environment, install west, export zephyr to be found by cmake, install necessary modules required by python, install the west sdk and build of the project using west.
+$status = system("bash -c 'source $venv_name/bin/activate && pip install west && west update && west zephyr-export && west packages pip --install && west sdk install && west build -p always -b nrf7002dk/nrf5340/cpuapp src/fan_pwm/'");
+print "Project has been built as /home/aharfuch/Kernergetiks/Humidity-control/zephyrproject/zephyr/build/zephyr/zephyr.elf.\n";
