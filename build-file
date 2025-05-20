@@ -7,23 +7,40 @@ use warnings;
 my $python3_path = `which python3`;
 chomp($python3_path);
 
+# Function to get valid user input
+sub get_user_choice {
+    while (1) {
+        print "Python 3 is not installed. Do you want to install it? (y/yes or n/no): ";
+        my $response = <STDIN>;
+        chomp($response);
+        $response = lc($response); # Convert input to lowercase
+
+        if ($response eq "y" || $response eq "yes") {
+            return 1;  # Positive response
+        } elsif ($response eq "n" || $response eq "no") {
+            return 0;  # Negative response
+        } else {
+            print "Invalid input. Please enter 'y' or 'yes' to install, or 'n' or 'no' to skip.\n";
+        }
+    }
+}
+
+# If Python 3 is NOT installed, prompt the user
 if (!$python3_path) {
-    print "Python 3 is not installed. Do you want to install it? (y/n): ";
-    my $response = <STDIN>;
-    chomp($response);
-    
-    if ($response eq "y") {
+    if (get_user_choice()) {
         print "Installing Python 3...\n";
-        system("sudo apt update && sudo apt install python3 -y");  # Change for other distros if needed
+        system("sudo apt update && sudo apt install python3 -y");  # Adjust for your package manager
     } else {
         print "Python 3 installation skipped.\n";
         exit(1);
     }
-} else {
-    print "Python 3 is installed at: $python3_path\n";
-    # Continue with the script
 }
+
+# If Python 3 is installed, continue with the script
+print "Python 3 is installed at: $python3_path\n";
+print "Proceeding with the rest of the program...\n";
 exit 0;
+
 # Step 1: Create the Python virtual environment
 my $venv_name = "../.venv";
 my $status = system("python3 -m venv $venv_name");
