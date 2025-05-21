@@ -2,63 +2,50 @@
 use strict;
 use warnings;
 
-# Step 1: Create the Python virtual environment
-# Check if Python 3 is installed
-my $python3_path = `which python3`;
-chomp($python3_path);
+# Run 'dpkg -s python3' to check if Python is installed
+my $check_python = `dpkg -s python3 2>/dev/null | grep Version`;
 
-# Function to get valid user input
-sub get_user_choice {
-    while (1) {
-        print "Python 3 is not installed. Do you want to install it? (y/yes or n/no): ";
-        my $response = <STDIN>;
-        chomp($response);
-        $response = lc($response); # Convert input to lowercase
-
-        if ($response eq "y" || $response eq "yes") {
-            return 1;  # Positive response
-        } elsif ($response eq "n" || $response eq "no") {
-            return 0;  # Negative response
-        } else {
-            print "Invalid input. Please enter 'y' or 'yes' to install, or 'n' or 'no' to skip.\n";
-        }
-    }
-}
-
-# If Python 3 is NOT installed, prompt the user
-if (!$python3_path) {
-    if (get_user_choice()) {
-        print "Installing Python 3...\n";
-        system("sudo apt update && sudo apt install python3 -y");  # Adjust for your package manager
-    } else {
-        print "Python 3 installation skipped.\n";
-        exit(1);
-    }
+# Verify the output
+if ($check_python) {
+    print "Python is installed:\n$check_python";
+} else {
+    print "Python is NOT installed.\n";
+    exit 0;
 }
 
 # If Python 3 is installed, continue with the script
-print "Python 3 is installed at: $python3_path\n";
-
 my $dir = "zephyrproject";
 my $zeprodir = 0;  # Flag to track whether the directory was newly created
 
 # Check if the directory exists
 if (-d $dir) {
-    print "The directory '$dir' already exists.\n";
+    chdir("zephyrproject") or die "Failed to change directory: $!\n";
 } else {
     print "The directory '$dir' does not exist. Creating it now...\n";
     mkdir $dir or die "Failed to create directory: $!";
 }
 
 # Step 1: Create the Python virtual environment
-my $venv_name = "zephyrproject/.venv";
-my $status = system("python3 -m venv $venv_name; echo 'Created virtual environment in zephyrproject/.venv directory'");
-die "Failed to create virtual environment!\n" if $status != 0;
-
+my $venv_name = ".venv";
+my $status = system("bash -c '
+    sudo apt install python3-venv &&
+    pwd &&
+    python3 -m venv $venv_name &&
+    cd .. &&
+    source zephyrproject/.venv/bin/activate &&
+    pip install west &&
+    (west init zephyrproject || echo \"Zephyr already initialized\") &&
+    cd zephyrproject &&
+    west update &&
+    west zephyr-export &&
+    west packages pip --install &&
+    cd zephyr &&
+    pwd &&
+    west sdk install &&
+    west &&
+    west build -p always -b nrf7002dk/nrf5340/cpuapp --source-dir /home/aharfuch/Kernergetiks/Soil-humidity/zephyrproject/zephyr/samples/basic/blinky_pwm --build-dir /home/aharfuch/Kernergetiks/Soil-humidity/zephyrproject/zephyr/build &&
+    deactivate
+'");
 # Step 2: Activate virtual environment, install west, export zephyr to be found by cmake, install necessary modules required by python, install the west sdk and build of the project using west.
-system("echo 'Activating the virtual environment'");
-$status = system("bash -c 'source zephyrproject/.venv/bin/activate; read -p \"Press Enter to continue or type exit to quit: \" input; if [ \"\$input\" = \"exit\" ]; then exit 1; fi; pip install west && if [ ! -d \"zephyrproject/.west\" ];then exit 1; fi; then echo \"Zephyr not initialized. Initializing...\";cd zephyrproject && west update && west zephyr-export && west packages pip --install && sdk install && west build -p always -b nrf7002dk/nrf5340/cpuapp --source-dir /home/aharfuch/Kernergetiks/Soil-humidity/zephyrproject/zephyr/samples/basic/blinky_pwm --build-dir /home/aharfuch/Kernergetiks/Soil-humidity/zephyrproject/zephyr/build; deactivate; echo \"Virtual environment successfully deactivated\"'");
-
 system("echo 'Virtual environment deactivated'");
-#&& pip install west && west update && west zephyr-export && west packages pip --install && west sdk install && west build -p always -b nrf7002dk/nrf5340/cpuapp src/fan_pwm/'");
-print "Project has been built as /home/aharfuch/Kernergetiks/Humidity-control/zephyrproject/zephyr/build/zephyr/zephyr.elf.\n";
+exit 0;
